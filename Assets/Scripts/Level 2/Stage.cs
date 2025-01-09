@@ -150,13 +150,13 @@ public class Stage : MonoBehaviour
                 {
                     int randIndx = Random.Range(0, trash.Length);
                     entity = trash[randIndx];
-                    Vector2 boxSize = entity.GetComponent<BoxCollider2D>().size;
+                    Vector2 boxSize = entity.GetComponent<BoxCollider2D>().bounds.size;
                     hitCollider = Physics2D.OverlapBox(spawnPoint, boxSize, 0f);
                 }
                 else if (type == "rock")
                 {
                     entity = rock;
-                    Vector2 boxSize = entity.GetComponent<BoxCollider2D>().size;
+                    Vector2 boxSize = entity.GetComponent<BoxCollider2D>().bounds.size;
                     hitCollider = Physics2D.OverlapBox(spawnPoint, boxSize, 0f);
                 }
 
@@ -166,7 +166,11 @@ public class Stage : MonoBehaviour
             }
             // If we cannot find a valid placement for the entity, we will stop trying to spawn in entities
             if(attempts >= maxAttempts)
+            {
                 break;
+                Debug.Log("Attemps = " + attempts + " Giving up");
+            }
+                
             GameObject entityClone = Instantiate(entity, spawnPoint, Quaternion.identity);
             num--;
             Destroy(entityClone, entityTime);
@@ -176,11 +180,6 @@ public class Stage : MonoBehaviour
             attempts = 0;       
         }      
     }
-    private void SpawnRocks (int min, int max)
-    {
-
-    }
-
     public void SetStage() 
     {
         isStage1 = !isStage1;
@@ -196,6 +195,12 @@ public class Stage : MonoBehaviour
     {
         minEnemies = min;
         maxEnemies = max;
+    }
+
+    public void ChangeRockMinMax(int min, int max) 
+    {
+        minRocks = min;
+        maxRocks = max;
     }
 
     public void RestartLevel()

@@ -83,6 +83,8 @@ public class Player : MonoBehaviour
     [HideInInspector]
     // Event that lets the stage script know when to change the min/max for the number of trash to spawn
     public IntEvent changeTrshMinMax;
+    // Event that lets the stage script know when to change the min/max for the number of rocks to spawn
+    public IntEvent changeRockMinMax;
     
     [HideInInspector]
     // Event that lets the stage script know when to change the min/max for the number of enemies to spawn
@@ -96,17 +98,14 @@ public class Player : MonoBehaviour
     // Whether the player has reached a number of points that will increase the speed and number of entities
     private bool isCheckpoint;
 
-    // MIN/MAX TRASH SPAWN (the # indicates the score before the min/max changes)
-    // public int minTrash5, maxTrash5, minTrash10, maxTrash10, minTrash15, maxTrash15, minTrash20, maxTrash20, minTrash25, maxTrash25, minTrash30, maxTrash30;
-    
     // The min/maxes for how much trash/enemies/rocks spawn after each checkpoint. Ecah index responds to a checkpoint, I.E. trashMinBounds[0] and trashMaxBounds[0] is the min/max trash to spawn after the first checkpoint
     public int[] trashMinArr;
     public int[] trashMaxArr;
     public int[] enemyMinArr;
     public int[] enemyMaxArr;
+    public int[] rocksMinArr;
+    public int[] rocksMaxArr;
 
-    // MIN/MAX ENEMY SPAWN (the # indicates the score before the min/max changes)
-    // public int minEnemies5, maxEnemies5, minEnemies10, maxEnemies10, minEnemies15, maxEnemies15, minEnemies20, maxEnemies20, minEnemies25, maxEnemies25, minEnemies30, maxEnemies30;
     // AUDIO ------------------------------------------------------------------------------------------------------
     // The sound that plays when the player hits a shark
     public AudioClip sharkBiteSound;
@@ -118,6 +117,8 @@ public class Player : MonoBehaviour
     public AudioClip flapSound;
     // The sound that playws when the player hits a rock
     public AudioClip rockHitSound;
+    // The sound that plays when the player lands in the water after jumping
+    public AudioClip splashSound;
     // ------------------------------------------------------------------------------------------------------------
 
     // The button that will restart the level
@@ -131,8 +132,10 @@ public class Player : MonoBehaviour
 
     // Stores the layer the player begins on
     int originalLayer;
-
-
+    // How much the player's vertical speed increases by at every checkpoint (percentage)
+    public float vertIncrease;
+    // How much the player's horizontal speed increases by at every checkpoint (percentage)
+    public float horizIncrease;
     
 
     // Start is called before the first frame update
@@ -161,6 +164,8 @@ public class Player : MonoBehaviour
         changeTrshMinMax.AddListener(stage.ChangeTrashMinMax);
         // The stage will change the min/max for the number of enemies to spawn when invoked
         changeEnmyMinMax.AddListener(stage.ChangeEnemyMinMax);
+        // The stage will change the min/max for the number of rocks to spawn when invoked
+        changeRockMinMax.AddListener(stage.ChangeRockMinMax);
         // This lets the player know the min/max set in the inspector for the stage
         trashMin = stage.minTrash;
         trashMax = stage.maxTrash;
@@ -193,17 +198,17 @@ public class Player : MonoBehaviour
             
             // This will cause the bounds and speed to change every increment of 5 up to 30
             if (score == 5 && !isCheckpoint) 
-                Checkpoint(trashMinArr[0], trashMaxArr[0], enemyMinArr[0], enemyMaxArr[0]);
+                Checkpoint(trashMinArr[0], trashMaxArr[0], enemyMinArr[0], enemyMaxArr[0], rocksMinArr[0], rocksMaxArr[0]);
             else if (score == 10 && !isCheckpoint)
-                Checkpoint(trashMinArr[1], trashMaxArr[1], enemyMinArr[1], enemyMaxArr[1]);
+                Checkpoint(trashMinArr[1], trashMaxArr[1], enemyMinArr[1], enemyMaxArr[1], rocksMinArr[1], rocksMaxArr[1]);
             else if (score == 15 && !isCheckpoint)
-                Checkpoint(trashMinArr[2], trashMaxArr[2], enemyMinArr[2], enemyMaxArr[2]);
+                Checkpoint(trashMinArr[2], trashMaxArr[2], enemyMinArr[2], enemyMaxArr[2], rocksMinArr[2], rocksMaxArr[2]);
             else if (score == 20 && !isCheckpoint)
-               Checkpoint(trashMinArr[3], trashMaxArr[3], enemyMinArr[3], enemyMaxArr[3]);
+               Checkpoint(trashMinArr[3], trashMaxArr[3], enemyMinArr[3], enemyMaxArr[3], rocksMinArr[3], rocksMaxArr[3]);
             else if (score == 25 && !isCheckpoint) 
-                Checkpoint(trashMinArr[4], trashMaxArr[4], enemyMinArr[4], enemyMaxArr[4]);
+                Checkpoint(trashMinArr[4], trashMaxArr[4], enemyMinArr[4], enemyMaxArr[4], rocksMinArr[4], rocksMaxArr[4]);
             else if (score == 30 && !isCheckpoint)
-                Checkpoint(trashMinArr[5], trashMaxArr[5], enemyMinArr[5], enemyMaxArr[5]);    
+                Checkpoint(trashMinArr[5], trashMaxArr[5], enemyMinArr[5], enemyMaxArr[5], rocksMinArr[5], rocksMaxArr[5]);    
             
             if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
             {
@@ -258,9 +263,7 @@ public class Player : MonoBehaviour
         StartCoroutine(Blink()); 
         UpdateHearts();       
          if (health == 0)
-                EndGame();
-        Debug.Log("Health: " + health);
-        
+                EndGame();       
     }
     public void EndGame()
     {
@@ -295,19 +298,25 @@ public class Player : MonoBehaviour
 
     
     // This happens when the player reaches a checkpoint (increases speed, cahnges min/max of entities)
-    private void Checkpoint(int minTrash, int maxTrash, int minEnemies, int maxEnemies)
+    private void Checkpoint(int minTrash, int maxTrash, int minEnemies, int maxEnemies, int minRocks, int maxRocks)
     {
-        increaseSpeed();
+        IncreaseSpeed();
         changeTrshMinMax.Invoke(minTrash, maxTrash);
         changeEnmyMinMax.Invoke(minEnemies, maxEnemies);
+        changeRockMinMax.Invoke(minRocks, maxRocks);
         isCheckpoint = true;
     }
 
-    private void increaseSpeed()
+    private void IncreaseSpeed()
     {
+        // Converts the percentages to decimals
+        vertIncrease/=100;
+        horizIncrease/=100;
+        // Increases scroll speed
         increaseScrollSpeed.Invoke();
-        vertSpeed++;
-        horizSpeed += 0.5f;
+        // Increases player's respective speeds
+        vertSpeed *= (1 + vertIncrease);
+        horizSpeed *= (1 + horizIncrease);
     }
     private void PlaySoundEffect(AudioClip clip)
     {
@@ -360,6 +369,7 @@ public class Player : MonoBehaviour
     private void Land()
     {
         // Play splash sound
+        // PlaySoundEffect(splashSound);
         // Switch back to original layer
         gameObject.layer = originalLayer;
         // Switch back to swimming animation
