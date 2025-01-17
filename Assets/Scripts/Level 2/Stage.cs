@@ -47,10 +47,27 @@ public class Stage : MonoBehaviour
     // The text that shows when the player pauses the game
     public TMP_Text pauseText;
 
+    // The text that will display the high score when the user pauses the game
+    public TMP_Text highScoreTextPaused;
+    
+
     // The button that will restart the level
     public Button retryButton;
     // The button that will take the player back to the menu
     public Button menuButton;
+
+    // The audio source that plays the background music
+    public AudioSource musicPlayer;
+    // The original volume of the music before pausing
+    private float originalVolume;
+    // How much the music will be reduced by when the user pauses the game    
+    public float soundReduction;
+    // The audio source that plays the button click sound
+    public AudioSource buttonSound;
+
+    private int highScore;
+   
+
     
 
     
@@ -63,6 +80,9 @@ public class Stage : MonoBehaviour
             isBegStage = true;
         }
         player = GameObject.Find("Player").GetComponent<Player>();
+        originalVolume = musicPlayer.volume;
+        highScore = PlayerPrefs.GetInt("HighScore", 0);
+        highScoreTextPaused.text = "High Score: " + highScore;
 
 
     }
@@ -90,7 +110,7 @@ public class Stage : MonoBehaviour
     void OnEnable() 
     {
         // Gets the position of the spawn point
-        spPosition = spawnPoint.transform.position;
+        spPosition = new Vector3(transform.position.x, spawnPoint.transform.position.y, 0);
         // If this is not the first stage, spawn in stage and entities
         if(!isBegStage) 
         {
@@ -205,36 +225,49 @@ public class Stage : MonoBehaviour
 
     public void RestartLevel()
     {
-        // If the player restarts the level from the pause menu, we must unpause the game
-        if (isPaused)
-            ResumeGame();
-        SceneManager.LoadScene("Level2");
+        StartCoroutine(RestartWithDelay());
     }
     public void BackToMenu()
     {
+        buttonSound.Play();
         // If the player goes to the menu from the pause menu, we must unpause the game
         if (isPaused)
-            ResumeGame();
+            Time.timeScale = 1;
         SceneManager.LoadScene("Menu");
     }
 
      // This happens when the player pauses the game
     private void PauseGame()
     {
+        highScoreTextPaused.gameObject.SetActive(true);
+        buttonSound.Play();
         Time.timeScale = 0;
         retryButton.gameObject.SetActive(true);
         menuButton.gameObject.SetActive(true);
         isPaused = true;
         pauseText.gameObject.SetActive(true);
+        musicPlayer.volume *= soundReduction;
     }
 
     // This happens when the player resumes the game
     private void ResumeGame()
     {
+        highScoreTextPaused.gameObject.SetActive(false);
+        buttonSound.Play();
         Time.timeScale = 1;
         retryButton.gameObject.SetActive(false);
         menuButton.gameObject.SetActive(false);
         isPaused = false;
         pauseText.gameObject.SetActive(false);
+        musicPlayer.volume = originalVolume;
+    }
+
+    IEnumerator RestartWithDelay()
+    {
+        buttonSound.Play();
+        yield return new WaitForSecondsRealtime(buttonSound.clip.length); // Wait for the sound to finish, unaffected by time scale
+        if (isPaused)
+            Time.timeScale = 1; // Reset time scale before restarting
+        SceneManager.LoadScene("Level2");
     }
 }

@@ -73,6 +73,14 @@ public class Player : MonoBehaviour
     public TMP_Text losingText;
     // The game object that holds the losing text
     private GameObject losingTextGO;
+    // The text that will display the high score when the player loses
+    public TMP_Text highScoreTextLose;
+    // The text that will display the final score when the player loses
+    public TMP_Text finalScoreText;
+    // The text that will display when the player gets a new high score
+    public TMP_Text newHighScoreText;
+    // The text that will display the new high score
+    public TMP_Text newHighScoreNumText;
     // ------------------------------------------------------------------------------------------------------------
     
     // Whether the player is dead
@@ -89,8 +97,7 @@ public class Player : MonoBehaviour
     [HideInInspector]
     // Event that lets the stage script know when to change the min/max for the number of enemies to spawn
     public IntEvent changeEnmyMinMax;
-    // Event that updates the health text when the player takes damage
-    // public UnityEvent healthTextUpdate;
+    
     // How much the scroll speed and player speed will increase by when the score reaches a checkpoint
     public float percentIncrease;
     // Will store the minimum/maximum number of trash/enemies to spawn
@@ -119,6 +126,7 @@ public class Player : MonoBehaviour
     public AudioClip rockHitSound;
     // The sound that plays when the player lands in the water after jumping
     public AudioClip splashSound;
+    
     // ------------------------------------------------------------------------------------------------------------
 
     // The button that will restart the level
@@ -136,6 +144,10 @@ public class Player : MonoBehaviour
     public float vertIncrease;
     // How much the player's horizontal speed increases by at every checkpoint (percentage)
     public float horizIncrease;
+    // Stores the high score of the player
+    private int highScore;
+    // The empty game object with the trash icon and the score (this is used so we can disactivate both at once)
+    public GameObject scoreGroup;
     
 
     // Start is called before the first frame update
@@ -178,6 +190,11 @@ public class Player : MonoBehaviour
         animator = GetComponent<Animator>();
 
         originalLayer = gameObject.layer;
+
+        highScore = PlayerPrefs.GetInt("HighScore", 0);
+
+        highScoreTextLose.text = "High Score: " + highScore;
+
 
        
 
@@ -227,8 +244,8 @@ public class Player : MonoBehaviour
         {
             PlaySoundEffect(trashCollectSound);
             entity.transform.position = new Vector2(trashSpwnX, trashSpwnY);
-            score++;
-            scoreText.text = "Score: " + score;
+            // Increments score and updates text
+            scoreText.text = (++score).ToString();
             // When the player gets a point while in a checkpoint, they must be out of a checkpoint
             if (isCheckpoint)
                 isCheckpoint = false;
@@ -267,12 +284,24 @@ public class Player : MonoBehaviour
     }
     public void EndGame()
     {
-        /// Shows Game over text
-        losingTextGO.SetActive(true);
+        if (score > highScore)
+            NewHighScore();
+        // This will happen if the user does not get a new high score
+        else
+        {
+            highScoreTextLose.gameObject.SetActive(true);
+            // Shows final score text
+            finalScoreText.text = "Final Score: " + score;
+            finalScoreText.gameObject.SetActive(true);
+        }
         isDead = true;
         Destroy(gameObject);
         retryButton.gameObject.SetActive(true);
         menuButton.gameObject.SetActive(true);
+        // Shows Game over text
+        losingTextGO.SetActive(true);
+        // Disactivates the score and trash icon
+        scoreGroup.SetActive(false);
     }
     // Makes the player blink/become invincible/phase when they take damage
     IEnumerator Blink()
@@ -362,6 +391,7 @@ public class Player : MonoBehaviour
         // Play jump sound      
         PlaySoundEffect(jumpSound);
         // While wings flap, play wing flapping sound
+        PlaySoundEffect(flapSound);
         isGrounded = false;
 
     }
@@ -369,12 +399,27 @@ public class Player : MonoBehaviour
     private void Land()
     {
         // Play splash sound
-        // PlaySoundEffect(splashSound);
+        PlaySoundEffect(splashSound);
         // Switch back to original layer
         gameObject.layer = originalLayer;
         // Switch back to swimming animation
         animator.Play("Player_Swim");
         isGrounded = true;
+    }
+    // This happens when the player gets a new high score
+    private void NewHighScore()
+    {
+        PlayerPrefs.SetInt("HighScore", score);
+        highScore = score;
+        
+        // Updates the high score number text to show the new high score
+        newHighScoreNumText.text = highScore.ToString();
+
+        newHighScoreText.gameObject.SetActive(true);
+        newHighScoreNumText.gameObject.SetActive(true);
+
+
+
     }
 
    

@@ -97,10 +97,12 @@ public class PlayerScript : MonoBehaviour
     public TMP_Text pauseText;
     //--------------------------------------------
     //SOUND EFFECTS ------------
+    public AudioSource music;
     public AudioSource correctSE;
     public AudioSource incorrectSE;
     public AudioSource pickUpSE;
     public AudioSource footstepsSE;
+    public AudioSource buttonSE;
     // ----------------------------
     private int throwOutCount;
 
@@ -108,6 +110,10 @@ public class PlayerScript : MonoBehaviour
     public GameObject pauseButtons;
 
     private bool isPaused;
+    // The background music before the game is pasued
+    private float originalVolume;
+    // How much the music will be reduced by when the user opens a different screen
+    public float soundReduction;
 
     // Start is called before the first frame update
     void Start()
@@ -123,6 +129,8 @@ public class PlayerScript : MonoBehaviour
         correctTextTimerSetter = correctTextTimer;
         winText.text = "";
         buttons.SetActive(false);
+        originalVolume = music.volume;
+         
 
     }
 
@@ -335,7 +343,6 @@ public class PlayerScript : MonoBehaviour
     private void ThrowOut()
     {
         throwOutCount++;
-        // Debug.Log(heldItem.ToString());
         heldItem.SetActive(false);
         holdingObject = false;
         heldItemType = "";
@@ -365,31 +372,45 @@ public class PlayerScript : MonoBehaviour
 
     public void BackToMenu()
     {
+        buttonSE.Play();
         // If the player goes back to the menu from the pause menu, we must unpause the game before going back to the menu
         if(isPaused)
-            ResumeGame();
+            Time.timeScale = 1;
         SceneManager.LoadScene("Menu");
     }
     public void Restart()
     {
-        // If the player restarts the game from the pause menu, we must unpause the game before restarting
-        if(isPaused)
-            ResumeGame();
-        SceneManager.LoadScene("Level1");
+        StartCoroutine(RestartWithDelay());
     }
 
     public void PauseGame()
     {
+        buttonSE.Play();
+        music.volume *= soundReduction;
         Time.timeScale = 0;
         pauseText.gameObject.SetActive(true);
         pauseButtons.SetActive(true);
-        isPaused = true;
+        isPaused = true;       
     }
     public void ResumeGame()
     {
+        buttonSE.Play();
         Time.timeScale = 1;
         pauseText.gameObject.SetActive(false);
         pauseButtons.SetActive(false);
         isPaused = false;
+        music.volume = originalVolume;
+    }
+    // This method makes it so we can hear the button click sound when the player restarts the game
+    IEnumerator RestartWithDelay()
+    {
+        buttonSE.Play();
+        // The game won't restart until the button sound effect is done playing
+        yield return new WaitForSecondsRealtime(buttonSE.clip.length);
+        if (isPaused)
+            Time.timeScale = 1;
+        SceneManager.LoadScene("Level1");
     }
 }
+
+    
